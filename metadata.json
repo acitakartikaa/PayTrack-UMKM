@@ -1,0 +1,6 @@
+{
+  "name": "PayTrack UMKM",
+  "description": "Sistem manajemen hutang kredit UMKM kepada supplier untuk membantu pembayaran tepat waktu dan terorganisir dengan prioritas cerdas.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
