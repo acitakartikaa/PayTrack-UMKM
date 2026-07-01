@@ -1,13 +1,53 @@
 <!doctype html>
-<html lang="en">
+<html lang="id">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>My Google AI Studio App</title>
+    <title>Mempersiapkan PayTrack UMKM...</title>
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+            }
+          }
+        }
+      }
+    </script>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
   </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+  <body class="bg-slate-50 min-h-screen flex flex-col items-center justify-center p-4">
+    <div class="text-center space-y-4 fade-in">
+      <div class="inline-flex p-4 bg-blue-50 text-blue-600 rounded-3xl animate-pulse">
+        <i data-lucide="wallet-cards" class="w-10 h-10"></i>
+      </div>
+      <h2 class="text-xl font-bold text-slate-800 tracking-tight">Menghubungkan Sesi...</h2>
+      <p class="text-sm text-slate-400 font-mono">PayTrack UMKM - Prioritas & Jadwal Hutang</p>
+      
+      <!-- Modern Spinner -->
+      <div class="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mt-4"></div>
+    </div>
+
+    <!-- DB Layer and Auth Router -->
+    <script src="assets/js/db.js"></script>
+    <script>
+      // Lucide
+      lucide.createIcons();
+
+      // Check user session
+      setTimeout(() => {
+        const user = window.PayTrackDB.getLoggedInUser();
+        if (user) {
+          window.location.href = 'dashboard.html';
+        } else {
+          window.location.href = 'login.html';
+        }
+      }, 500); // Tiny cosmetic delay for seamless flow
+    </script>
   </body>
 </html>
-

@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login - PayTrack UMKM</title>
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+            }
+          }
+        }
+      }
+    </script>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+  </head>
+  <body class="bg-slate-50 min-h-screen flex items-center justify-center p-4">
+    <div class="max-w-md w-full bg-white rounded-3xl shadow-xl border border-slate-100 overflow-hidden p-8 fade-in">
+      <!-- Top Branding -->
+      <div class="text-center mb-8">
+        <div class="inline-flex p-3.5 bg-blue-50 text-blue-600 rounded-2xl mb-4">
+          <i data-lucide="wallet-cards" class="w-8 h-8"></i>
+        </div>
+        <h2 class="text-2xl font-bold text-slate-900 tracking-tight">PayTrack <span class="text-blue-600">UMKM</span></h2>
+        <p class="text-sm text-slate-500 mt-1">Sistem Manajemen Prioritas & Jadwal Hutang</p>
+      </div>
+
+      <!-- Alert Panel -->
+      <div id="login-alert" class="hidden mb-6 p-4 rounded-xl text-sm border"></div>
+
+      <!-- Form -->
+      <form id="login-form" class="space-y-5">
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Username</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+              <i data-lucide="user" class="w-5 h-5"></i>
+            </span>
+            <input type="text" id="username" required placeholder="budi" class="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Password</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+              <i data-lucide="lock" class="w-5 h-5"></i>
+            </span>
+            <input type="password" id="password" required placeholder="••••••••" class="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all">
+          </div>
+        </div>
+
+        <button type="submit" class="w-full py-3.5 px-4 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 active:bg-blue-800 shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2">
+          <span>Masuk ke Dashboard</span>
+          <i data-lucide="arrow-right" class="w-5 h-5"></i>
+        </button>
+      </form>
+
+      <!-- Testing Hint Accordion -->
+      <div class="mt-8 border-t border-slate-100 pt-6">
+        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 text-center">Akun Uji Coba (Credentials)</p>
+        <div class="grid grid-cols-2 gap-3 text-xs">
+          <div class="p-2.5 bg-slate-50 border border-slate-100 rounded-xl cursor-pointer hover:border-blue-300 transition-all" onclick="fillCreds('budi', '123')">
+            <p class="font-bold text-slate-700">Pemilik (Owner)</p>
+            <p class="text-slate-500 font-mono mt-0.5">user: budi</p>
+            <p class="text-slate-500 font-mono">pass: 123</p>
+          </div>
+          <div class="p-2.5 bg-slate-50 border border-slate-100 rounded-xl cursor-pointer hover:border-blue-300 transition-all" onclick="fillCreds('admin', '123')">
+            <p class="font-bold text-slate-700">Admin Keuangan</p>
+            <p class="text-slate-500 font-mono mt-0.5">user: admin</p>
+            <p class="text-slate-500 font-mono">pass: 123</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Data Manager & Scripts -->
+    <script src="assets/js/db.js"></script>
+    <script src="assets/js/script.js"></script>
+    <script>
+      // Initialize Lucide
+      lucide.createIcons();
+
+      // Quick autofill helper
+      function fillCreds(username, password) {
+        document.getElementById('username').value = username;
+        document.getElementById('password').value = password;
+      }
+
+      // Handle Submit
+      document.getElementById('login-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const user = document.getElementById('username').value;
+        const pass = document.getElementById('password').value;
+        const res = window.PayTrackDB.loginUser(user, pass);
+        
+        const alertDiv = document.getElementById('login-alert');
+        if (res.success) {
+          alertDiv.className = "mb-6 p-4 rounded-xl text-sm border bg-emerald-50 border-emerald-200 text-emerald-800";
+          alertDiv.innerHTML = "Login berhasil! Mengarahkan...";
+          alertDiv.classList.remove('hidden');
+          setTimeout(() => {
+            window.location.href = 'dashboard.html';
+          }, 800);
+        } else {
+          alertDiv.className = "mb-6 p-4 rounded-xl text-sm border bg-rose-50 border-rose-200 text-rose-800 animate-pulse";
+          alertDiv.innerHTML = res.message;
+          alertDiv.classList.remove('hidden');
+        }
+      });
+    </script>
+  </body>
+</html>

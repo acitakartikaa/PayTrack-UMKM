@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Data Hutang - PayTrack UMKM</title>
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+            }
+          }
+        }
+      }
+    </script>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+  </head>
+  <body>
+    <div id="app-layout">
+      <!-- Title Block -->
+      <div class="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4 fade-in">
+        <div>
+          <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Kredit & Hutang Usaha</h1>
+          <p class="text-sm text-slate-500 mt-1">Kelola pencatatan faktur pembelian kredit, tenor, dan angsuran</p>
+        </div>
+        <div>
+          <button onclick="openHutangModal()" class="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white font-semibold text-sm rounded-xl hover:bg-blue-700 shadow-md transition-all">
+            <i data-lucide="plus-circle" class="w-4 h-4"></i>
+            <span>Catat Hutang Baru</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Controls Block -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row gap-4 mb-6 fade-in" style="animation-delay: 0.1s">
+        <!-- Search -->
+        <div class="relative flex-1">
+          <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+            <i data-lucide="search" class="w-4 h-4"></i>
+          </span>
+          <input type="text" id="hutang-search" placeholder="Cari nomor faktur..." class="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 text-sm text-slate-800 focus:outline-none focus:border-blue-500" oninput="renderHutangList()">
+        </div>
+        <!-- Supplier Filter -->
+        <div class="w-full sm:w-48">
+          <select id="supplier-filter" class="w-full px-4 py-2 rounded-xl border border-slate-200 text-sm text-slate-700 focus:outline-none focus:border-blue-500" onchange="renderHutangList()">
+            <option value="all">Semua Supplier</option>
+            <!-- Dynamically populated -->
+          </select>
+        </div>
+        <!-- Status Filter -->
+        <div class="w-full sm:w-44">
+          <select id="status-filter" class="w-full px-4 py-2 rounded-xl border border-slate-200 text-sm text-slate-700 focus:outline-none focus:border-blue-500" onchange="renderHutangList()">
+            <option value="all">Semua Status</option>
+            <option value="belum_lunas">Belum Lunas</option>
+            <option value="dicicil">Dicicil</option>
+            <option value="lunas">Lunas</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Debt Table List -->
+      <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden fade-in" style="animation-delay: 0.2s">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-slate-50/70 border-b border-slate-100 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                <th class="p-4">Faktur</th>
+                <th class="p-4">Supplier</th>
+                <th class="p-4">Tgl Transaksi</th>
+                <th class="p-4">Tgl Jatuh Tempo</th>
+                <th class="p-4 text-right">Pokok Hutang</th>
+                <th class="p-4 text-right">Denda</th>
+                <th class="p-4 text-center">Status</th>
+                <th class="p-4 text-right">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="hutang-list" class="divide-y divide-slate-100 text-sm text-slate-700">
+              <!-- Populated dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Add/Edit Hutang Modal -->
+      <div id="hutang-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm items-center justify-center z-50 hidden flex">
+        <div class="bg-white rounded-2xl max-w-lg w-full m-4 shadow-2xl border border-slate-100 overflow-hidden">
+          <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+            <h3 id="modal-title" class="font-bold text-slate-800">Form Hutang Kredit</h3>
+            <button onclick="closeHutangModal()" class="text-slate-400 hover:text-slate-600">
+              <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+          </div>
+
+          <form id="hutang-form" class="p-6 space-y-4" onsubmit="saveHutangForm(event)">
+            <input type="hidden" id="hutang-id">
+
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Supplier Mitra</label>
+                <select id="form-supplier-id" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-800 focus:outline-none focus:border-blue-500">
+                  <!-- Loaded dynamically -->
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Nomor Faktur</label>
+                <input type="text" id="form-nomor-faktur" required placeholder="FACT-2026xxxx" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-800 focus:outline-none focus:border-blue-500">
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Jumlah Hutang (Rp)</label>
+                <input type="number" id="form-jumlah-hutang" required placeholder="Contoh: 5000000" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-800 font-mono focus:outline-none focus:border-blue-500">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Denda Keterlambatan (Rp)</label>
+                <input type="number" id="form-denda-hutang" placeholder="0" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-800 font-mono focus:outline-none focus:border-blue-500">
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Tanggal Transaksi</label>
+                <input type="date" id="form-tanggal-transaksi" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-800 focus:outline-none focus:border-blue-500">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Tanggal Jatuh Tempo</label>
+                <input type="date" id="form-tanggal-jatuh-tempo" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-800 focus:outline-none focus:border-blue-500">
+              </div>
+            </div>
+
+            <div id="installments-section">
+              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Bagi Menjadi Angsuran (Jadwal otomatis)</label>
+              <select id="form-installments" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-800 focus:outline-none focus:border-blue-500">
+                <option value="1">1 Kali Pembayaran (Full / Sekaligus)</option>
+                <option value="2">2 Kali Angsuran berkala</option>
+                <option value="4">4 Kali Angsuran berkala</option>
+                <option value="6">6 Kali Angsuran berkala</option>
+                <option value="12">12 Kali Angsuran berkala</option>
+              </select>
+            </div>
+
+            <div class="flex gap-3 justify-end pt-4">
+              <button type="button" onclick="closeHutangModal()" class="px-4 py-2 border border-slate-200 rounded-xl text-slate-500 text-sm font-semibold hover:bg-slate-50">Batal</button>
+              <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold shadow-md">Simpan Kredit</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Data Manager & Scripts -->
+    <script src="assets/js/db.js"></script>
+    <script src="assets/js/script.js"></script>
+    <script>
+      // Load filters & dropdown suppliers
+      const suppliers = window.PayTrackDB.getSuppliers();
+      const filterSel = document.getElementById('supplier-filter');
+      const formSupSel = document.getElementById('form-supplier-id');
+
+      const optionsHtml = suppliers.map(s => `<option value="${s.id}">${s.nama_supplier}</option>`).join('');
+      filterSel.innerHTML += optionsHtml;
+      formSupSel.innerHTML = optionsHtml;
+
+      function renderHutangList() {
+        const query = document.getElementById('hutang-search').value.toLowerCase();
+        const supplierFilter = document.getElementById('supplier-filter').value;
+        const statusFilter = document.getElementById('status-filter').value;
+        const list = document.getElementById('hutang-list');
+
+        const hutangs = window.PayTrackDB.getHutangs();
+
+        const filtered = hutangs.filter(h => {
+          const matchQuery = h.nomor_faktur.toLowerCase().includes(query);
+          const matchSup = supplierFilter === 'all' || h.supplier_id === supplierFilter;
+          const matchStatus = statusFilter === 'all' || h.status_hutang === statusFilter;
+          return matchQuery && matchSup && matchStatus;
+        });
+
+        if (filtered.length === 0) {
+          list.innerHTML = `
+            <tr>
+              <td colspan="8" class="p-8 text-center text-slate-400">
+                <i data-lucide="file-text" class="w-10 h-10 mx-auto text-slate-300 mb-2"></i>
+                <p class="font-semibold text-slate-500">Tidak ada faktur hutang ditemukan</p>
+              </td>
+            </tr>
+          `;
+          if (window.lucide) window.lucide.createIcons();
+          return;
+        }
+
+        list.innerHTML = filtered.map(h => {
+          const sup = suppliers.find(s => s.id === h.supplier_id) || { nama_supplier: 'Mitra Tidak Ditemukan' };
+          
+          let statusBadge = '';
+          if (h.status_hutang === 'lunas') {
+            statusBadge = '<span class="px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-full font-bold text-xs">LUNAS</span>';
+          } else if (h.status_hutang === 'dicicil') {
+            statusBadge = '<span class="px-2.5 py-1 bg-blue-50 text-blue-700 rounded-full font-bold text-xs">DICICIL</span>';
+          } else {
+            statusBadge = '<span class="px-2.5 py-1 bg-rose-50 text-red-600 rounded-full font-bold text-xs">BELUM LUNAS</span>';
+          }
+
+          return `
+            <tr class="hover:bg-slate-50/50 transition-colors">
+              <td class="p-4 font-semibold text-slate-900">${h.nomor_faktur}</td>
+              <td class="p-4">
+                <span class="font-semibold text-slate-800">${sup.nama_supplier}</span>
+                <p class="text-xs text-slate-400 font-mono">Pri: ${sup.tingkat_prioritas}</p>
+              </td>
+              <td class="p-4 font-mono text-xs">${h.tanggal_transaksi}</td>
+              <td class="p-4 font-mono text-xs font-semibold">${h.tanggal_jatuh_tempo}</td>
+              <td class="p-4 text-right font-bold text-slate-900 font-mono">Rp ${h.jumlah_hutang.toLocaleString('id-ID')}</td>
+              <td class="p-4 text-right font-mono text-red-500">Rp ${h.denda_keterlambatan.toLocaleString('id-ID')}</td>
+              <td class="p-4 text-center">${statusBadge}</td>
+              <td class="p-4 text-right">
+                <div class="flex items-center justify-end gap-1.5">
+                  <button onclick="editHutang('${h.id}')" class="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all" title="Edit">
+                    <i data-lucide="edit-2" class="w-4 h-4"></i>
+                  </button>
+                  <button onclick="deleteHutang('${h.id}')" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all" title="Hapus">
+                    <i data-lucide="trash" class="w-4 h-4"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          `;
+        }).join('');
+
+        if (window.lucide) window.lucide.createIcons();
+      }
+
+      function openHutangModal(h = null) {
+        const modal = document.getElementById('hutang-modal');
+        const title = document.getElementById('modal-title');
+        const instSec = document.getElementById('installments-section');
+
+        if (h) {
+          title.innerText = 'Ubah Faktur Kredit';
+          instSec.classList.add('hidden'); // Cannot edit installments count after creation to protect schedules integrity
+
+          document.getElementById('hutang-id').value = h.id;
+          document.getElementById('form-supplier-id').value = h.supplier_id;
+          document.getElementById('form-nomor-faktur').value = h.nomor_faktur;
+          document.getElementById('form-jumlah-hutang').value = h.jumlah_hutang;
+          document.getElementById('form-denda-hutang').value = h.denda_keterlambatan;
+          document.getElementById('form-tanggal-transaksi').value = h.tanggal_transaksi;
+          document.getElementById('form-tanggal-jatuh-tempo').value = h.tanggal_jatuh_tempo;
+        } else {
+          title.innerText = 'Catat Faktur Hutang Baru';
+          instSec.classList.remove('hidden');
+
+          document.getElementById('hutang-id').value = '';
+          document.getElementById('hutang-form').reset();
+        }
+
+        modal.classList.remove('hidden');
+      }
+
+      function closeHutangModal() {
+        document.getElementById('hutang-modal').classList.add('hidden');
+      }
+
+      function saveHutangForm(e) {
+        e.preventDefault();
+        const id = document.getElementById('hutang-id').value;
+        const numInst = parseInt(document.getElementById('form-installments').value);
+
+        const data = {
+          supplier_id: document.getElementById('form-supplier-id').value,
+          nomor_faktur: document.getElementById('form-nomor-faktur').value,
+          jumlah_hutang: parseFloat(document.getElementById('form-jumlah-hutang').value),
+          denda_keterlambatan: parseFloat(document.getElementById('form-denda-hutang').value) || 0,
+          tanggal_transaksi: document.getElementById('form-tanggal-transaksi').value,
+          tanggal_jatuh_tempo: document.getElementById('form-tanggal-jatuh-tempo').value
+        };
+
+        if (id) {
+          window.PayTrackDB.updateHutang(id, data);
+        } else {
+          window.PayTrackDB.addHutang(data, numInst);
+        }
+
+        document.getElementById('hutang-modal').classList.add('hidden');
+        renderHutangList();
+      }
+
+      window.editHutang = function(id) {
+        const h = window.PayTrackDB.getHutangs().find(item => item.id === id);
+        if (h) openHutangModal(h);
+      };
+
+      window.deleteHutang = function(id) {
+        if (confirm('Apakah Anda yakin ingin menghapus data hutang beserta jadwal terkait?')) {
+          window.PayTrackDB.deleteHutang(id);
+          renderHutangList();
+        }
+      };
+
+      renderHutangList();
+    </script>
+  </body>
+</html>

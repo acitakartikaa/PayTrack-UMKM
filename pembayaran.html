@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pembayaran Kas - PayTrack UMKM</title>
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+            }
+          }
+        }
+      }
+    </script>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+  </head>
+  <body>
+    <div id="app-layout">
+      <!-- Title Block -->
+      <div class="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4 fade-in">
+        <div>
+          <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Realisasi Pembayaran Kas</h1>
+          <p class="text-sm text-slate-500 mt-1">Catat transaksi pengeluaran kas untuk pelunasan atau cicilan hutang dagang</p>
+        </div>
+        <div>
+          <button onclick="openPaymentModal()" class="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white font-semibold text-sm rounded-xl hover:bg-blue-700 shadow-md transition-all">
+            <i data-lucide="plus-circle" class="w-4 h-4"></i>
+            <span>Catat Transaksi Baru</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Controls Block -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row gap-4 mb-6 fade-in" style="animation-delay: 0.1s">
+        <!-- Search -->
+        <div class="relative flex-1">
+          <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+            <i data-lucide="search" class="w-4 h-4"></i>
+          </span>
+          <input type="text" id="payment-search" placeholder="Cari nomor referensi, faktur, atau supplier..." class="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 text-sm text-slate-800 focus:outline-none focus:border-blue-500" oninput="renderPaymentList()">
+        </div>
+      </div>
+
+      <!-- Transaction List Table -->
+      <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden fade-in" style="animation-delay: 0.2s">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-slate-50/70 border-b border-slate-100 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                <th class="p-4">Tanggal Pembayaran</th>
+                <th class="p-4">Faktur / Supplier</th>
+                <th class="p-4">Metode Bayar</th>
+                <th class="p-4">Nomor Referensi</th>
+                <th class="p-4 text-right">Jumlah Dibayar</th>
+                <th class="p-4 text-center">Bukti / Resi</th>
+              </tr>
+            </thead>
+            <tbody id="payments-list" class="divide-y divide-slate-100 text-sm text-slate-700">
+              <!-- Populated dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Add Payment Modal -->
+      <div id="payment-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm items-center justify-center z-50 hidden flex">
+        <div class="bg-white rounded-2xl max-w-lg w-full m-4 shadow-2xl border border-slate-100 overflow-hidden">
+          <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+            <h3 class="font-bold text-slate-800">Pencatatan Pembayaran Kas Baru</h3>
+            <button onclick="closePaymentModal()" class="text-slate-400 hover:text-slate-600">
+              <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+          </div>
+
+          <form id="payment-form" class="p-6 space-y-4" onsubmit="savePaymentForm(event)">
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Faktur Kredit Pembelian</label>
+              <select id="form-hutang-id" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-800 focus:outline-none focus:border-blue-500" onchange="onSelectedDebtChange()">
+                <!-- Loaded dynamically -->
+              </select>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Jumlah Pembayaran (Rp)</label>
+                <input type="number" id="form-jumlah-pembayaran" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-800 font-mono focus:outline-none focus:border-blue-500">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Metode Pembayaran</label>
+                <select id="form-metode-pembayaran" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-800 focus:outline-none focus:border-blue-500">
+                  <option value="transfer">Transfer Bank (BCA/Mandiri)</option>
+                  <option value="e-wallet">E-Wallet (OVO/Gopay/DANA)</option>
+                  <option value="tunai">Kas Tunai (Cash)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Tanggal Pembayaran</label>
+                <input type="date" id="form-tanggal-pembayaran" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-800 focus:outline-none focus:border-blue-500">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">No Referensi Transaksi (Opsional)</label>
+                <input type="text" id="form-nomor-referensi" placeholder="Otomatis digenerate" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-800 focus:outline-none focus:border-blue-500">
+              </div>
+            </div>
+
+            <!-- Drag and Drop Upload Area -->
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Unggah Bukti / Resi Pembayaran</label>
+              <div id="dropzone" class="border-2 border-dashed border-slate-200 rounded-2xl p-6 text-center cursor-pointer hover:border-blue-500 hover:bg-slate-50 transition-all">
+                <input type="file" id="file-input" class="hidden" accept="image/*">
+                <i data-lucide="cloud-upload" class="w-8 h-8 mx-auto text-slate-400 mb-2"></i>
+                <p class="text-sm font-semibold text-slate-600" id="dropzone-text">Seret & letakkan gambar disini, atau klik untuk memilih file</p>
+                <p class="text-[10px] text-slate-400 mt-1">Dukung format: JPG, PNG, WEBP (Maksimal 2MB)</p>
+              </div>
+              <input type="hidden" id="form-bukti-url" value="">
+            </div>
+
+            <div class="flex gap-3 justify-end pt-4">
+              <button type="button" onclick="closePaymentModal()" class="px-4 py-2 border border-slate-200 rounded-xl text-slate-500 text-sm font-semibold hover:bg-slate-50">Batal</button>
+              <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold shadow-md">Simpan Pembayaran</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Receipt Viewer Modal -->
+      <div id="receipt-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm items-center justify-center z-50 hidden flex">
+        <div class="bg-white rounded-2xl max-w-sm w-full m-4 shadow-2xl border border-slate-100 overflow-hidden">
+          <div class="p-6 text-center border-b border-dashed border-slate-100">
+            <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-3">
+              <i data-lucide="check-circle-2" class="w-7 h-7"></i>
+            </div>
+            <h3 class="font-bold text-slate-800 text-lg">Resi Pembayaran Kas</h3>
+            <p class="text-[10px] font-mono text-slate-400 mt-0.5" id="receipt-id">ID: -</p>
+          </div>
+          
+          <div class="p-6 space-y-4 font-mono text-xs text-slate-600" id="receipt-details">
+            <!-- Loaded dynamically -->
+          </div>
+
+          <div class="p-4 bg-slate-50 border-t border-slate-100 flex gap-2">
+            <button onclick="window.print()" class="flex-1 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 flex items-center justify-center gap-1">
+              <i data-lucide="printer" class="w-3.5 h-3.5"></i> Cetak Resi
+            </button>
+            <button onclick="closeReceiptModal()" class="flex-1 py-2 bg-blue-600 rounded-xl text-xs font-semibold text-white hover:bg-blue-700">
+              Selesai
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Data Manager & Scripts -->
+    <script src="assets/js/db.js"></script>
+    <script src="assets/js/script.js"></script>
+    <script>
+      // Load Debts Options
+      let activeDebts = [];
+      let suppliers = [];
+
+      function loadFormDropdowns() {
+        const db = window.PayTrackDB.getDb();
+        activeDebts = db.hutang_kredit.filter(h => h.status_hutang !== 'lunas');
+        suppliers = db.supplier;
+
+        const select = document.getElementById('form-hutang-id');
+        if (activeDebts.length === 0) {
+          select.innerHTML = '<option value="">Semua hutang telah lunas!</option>';
+        } else {
+          select.innerHTML = activeDebts.map(h => {
+            const sup = suppliers.find(s => s.id === h.supplier_id) || { nama_supplier: 'Mitra' };
+            const totalPaid = db.transaksi_pembayaran
+              .filter(t => t.hutang_id === h.id)
+              .reduce((sum, curr) => sum + curr.jumlah_pembayaran, 0);
+            const sisa = (h.jumlah_hutang + h.denda_keterlambatan) - totalPaid;
+
+            return `<option value="${h.id}" data-sisa="${sisa}">${h.nomor_faktur} - ${sup.nama_supplier} (Sisa: Rp ${sisa.toLocaleString('id-ID')})</option>`;
+          }).join('');
+        }
+        onSelectedDebtChange();
+      }
+
+      function onSelectedDebtChange() {
+        const select = document.getElementById('form-hutang-id');
+        if (select.selectedOptions && select.selectedOptions[0]) {
+          const sisa = select.selectedOptions[0].getAttribute('data-sisa');
+          if (sisa) {
+            document.getElementById('form-jumlah-pembayaran').value = sisa;
+          }
+        }
+      }
+
+      // Render Table
+      function renderPaymentList() {
+        const query = document.getElementById('payment-search').value.toLowerCase();
+        const container = document.getElementById('payments-list');
+        const list = window.PayTrackDB.getTransaksiPembayaran();
+
+        const filtered = list.filter(t => {
+          return t.nomor_referensi.toLowerCase().includes(query) || 
+                 t.nomor_faktur.toLowerCase().includes(query) || 
+                 t.nama_supplier.toLowerCase().includes(query);
+        });
+
+        // Sort descending by date
+        filtered.sort((a, b) => new Date(b.tanggal_pembayaran) - new Date(a.tanggal_pembayaran));
+
+        if (filtered.length === 0) {
+          container.innerHTML = `
+            <tr>
+              <td colspan="6" class="p-8 text-center text-slate-400">
+                <i data-lucide="wallet" class="w-10 h-10 mx-auto text-slate-300 mb-2"></i>
+                <p class="font-semibold text-slate-500">Tidak ada transaksi pembayaran</p>
+              </td>
+            </tr>
+          `;
+          if (window.lucide) window.lucide.createIcons();
+          return;
+        }
+
+        container.innerHTML = filtered.map(t => {
+          const hasReceipt = t.bukti_pembayaran_url ? 'Ada' : 'Kosong';
+          const badgeClass = t.bukti_pembayaran_url ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-slate-100 text-slate-400 border-slate-200';
+
+          return `
+            <tr class="hover:bg-slate-50/50 transition-colors">
+              <td class="p-4 font-mono text-xs">${t.tanggal_pembayaran}</td>
+              <td class="p-4">
+                <span class="font-semibold text-slate-800">${t.nomor_faktur}</span>
+                <p class="text-xs text-slate-400">${t.nama_supplier}</p>
+              </td>
+              <td class="p-4 capitalize"><span class="px-2 py-0.5 bg-slate-100 rounded-lg text-xs font-semibold">${t.metode_pembayaran}</span></td>
+              <td class="p-4 font-mono text-xs text-slate-500">${t.nomor_referensi}</td>
+              <td class="p-4 text-right font-bold text-emerald-600 font-mono">Rp ${t.jumlah_pembayaran.toLocaleString('id-ID')}</td>
+              <td class="p-4 text-center">
+                <button onclick="viewReceipt('${t.id}')" class="px-2.5 py-1 text-xs border rounded-lg hover:bg-slate-50 transition-all font-semibold ${badgeClass}">
+                  Lihat Resi
+                </button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+
+        if (window.lucide) window.lucide.createIcons();
+      }
+
+      function openPaymentModal() {
+        const modal = document.getElementById('payment-modal');
+        document.getElementById('payment-form').reset();
+        document.getElementById('dropzone-text').innerText = 'Seret & letakkan gambar disini, atau klik untuk memilih file';
+        document.getElementById('form-bukti-url').value = '';
+        
+        // Setup today's date
+        document.getElementById('form-tanggal-pembayaran').value = '2026-06-29';
+
+        loadFormDropdowns();
+        modal.classList.remove('hidden');
+      }
+
+      function closePaymentModal() {
+        document.getElementById('payment-modal').classList.add('hidden');
+      }
+
+      // Drag & Drop Setup
+      const dropzone = document.getElementById('dropzone');
+      const fileInput = document.getElementById('file-input');
+      const dropzoneText = document.getElementById('dropzone-text');
+      const hiddenUrlInput = document.getElementById('form-bukti-url');
+
+      if (dropzone && fileInput) {
+        dropzone.addEventListener('click', () => fileInput.click());
+        
+        dropzone.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          dropzone.classList.add('border-blue-500', 'bg-blue-50');
+        });
+
+        dropzone.addEventListener('dragleave', () => {
+          dropzone.classList.remove('border-blue-500', 'bg-blue-50');
+        });
+
+        dropzone.addEventListener('drop', (e) => {
+          e.preventDefault();
+          dropzone.classList.remove('border-blue-500', 'bg-blue-50');
+          if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+            handleFile(e.dataTransfer.files[0]);
+          }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+          if (e.target.files && e.target.files[0]) {
+            handleFile(e.target.files[0]);
+          }
+        });
+      }
+
+      function handleFile(file) {
+        dropzoneText.innerText = `Terunggah: ${file.name} (${Math.round(file.size / 1024)} KB)`;
+        // Store simulated local path / base64 for pure static fidelity
+        hiddenUrlInput.value = 'res_sim_uploaded_' + file.name;
+      }
+
+      function savePaymentForm(e) {
+        e.preventDefault();
+        const hutangId = document.getElementById('form-hutang-id').value;
+        if (!hutangId) {
+          alert('Tidak ada hutang aktif yang dipilih!');
+          return;
+        }
+
+        const transData = {
+          hutang_id: hutangId,
+          tanggal_pembayaran: document.getElementById('form-tanggal-pembayaran').value,
+          jumlah_pembayaran: parseFloat(document.getElementById('form-jumlah-pembayaran').value),
+          metode_pembayaran: document.getElementById('form-metode-pembayaran').value,
+          nomor_referensi: document.getElementById('form-nomor-referensi').value,
+          bukti_pembayaran_url: hiddenUrlInput.value
+        };
+
+        const res = window.PayTrackDB.addTransaksiPembayaran(transData);
+        if (res.success) {
+          closePaymentModal();
+          renderPaymentList();
+          // Auto display gorgeous digital slip
+          viewReceipt(res.transaction.id);
+        } else {
+          alert(res.message);
+        }
+      }
+
+      // Receipt Visualizer Modal
+      window.viewReceipt = function(id) {
+        const modal = document.getElementById('receipt-modal');
+        const db = window.PayTrackDB.getDb();
+        const t = window.PayTrackDB.getTransaksiPembayaran().find(item => item.id === id);
+        
+        if (t) {
+          document.getElementById('receipt-id').innerText = `ID TRANSAKSI: ${t.id.toUpperCase()}`;
+          
+          let uploadStatusLine = t.bukti_pembayaran_url 
+            ? `<div class="flex justify-between border-b border-slate-100 py-1.5 text-[10px] text-blue-600 font-bold"><span>RESI FISIK:</span><span>TERUNGGAH ✔</span></div>`
+            : `<div class="flex justify-between border-b border-slate-100 py-1.5 text-[10px] text-slate-400"><span>RESI FISIK:</span><span>TIDAK DILAMPIRKAN</span></div>`;
+
+          document.getElementById('receipt-details').innerHTML = `
+            <div class="flex justify-between border-b border-slate-100 py-1.5">
+              <span>NAMA UMKM:</span>
+              <span class="font-bold text-slate-800">${db.umkm.nama_umkm}</span>
+            </div>
+            <div class="flex justify-between border-b border-slate-100 py-1.5">
+              <span>FAKTUR:</span>
+              <span class="font-bold text-slate-800">${t.nomor_faktur}</span>
+            </div>
+            <div class="flex justify-between border-b border-slate-100 py-1.5">
+              <span>SUPPLIER:</span>
+              <span class="font-bold text-slate-800 text-right">${t.nama_supplier}</span>
+            </div>
+            <div class="flex justify-between border-b border-slate-100 py-1.5">
+              <span>TANGGAL:</span>
+              <span>${t.tanggal_pembayaran}</span>
+            </div>
+            <div class="flex justify-between border-b border-slate-100 py-1.5">
+              <span>METODE:</span>
+              <span class="uppercase">${t.metode_pembayaran}</span>
+            </div>
+            <div class="flex justify-between border-b border-slate-100 py-1.5">
+              <span>REF NO:</span>
+              <span>${t.nomor_referensi}</span>
+            </div>
+            ${uploadStatusLine}
+            <div class="flex justify-between pt-4 text-sm font-bold text-slate-900">
+              <span>TOTAL BAYAR:</span>
+              <span>Rp ${t.jumlah_pembayaran.toLocaleString('id-ID')}</span>
+            </div>
+          `;
+
+          modal.classList.remove('hidden');
+        }
+      };
+
+      window.closeReceiptModal = function() {
+        document.getElementById('receipt-modal').classList.add('hidden');
+      };
+
+      renderPaymentList();
+    </script>
+  </body>
+</html>

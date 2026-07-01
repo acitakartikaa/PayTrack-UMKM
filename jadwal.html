@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Jadwal Pembayaran - PayTrack UMKM</title>
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+            }
+          }
+        }
+      }
+    </script>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+  </head>
+  <body>
+    <div id="app-layout">
+      <!-- Title Block -->
+      <div class="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4 fade-in">
+        <div>
+          <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Jadwal Angsuran & Rencana Bayar</h1>
+          <p class="text-sm text-slate-500 mt-1">Pantau, koordinasi, dan tambahkan tanggal rencana angsuran hutang dagang</p>
+        </div>
+        <div>
+          <button onclick="openCustomJadwalModal()" class="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white font-semibold text-sm rounded-xl hover:bg-blue-700 shadow-md transition-all">
+            <i data-lucide="calendar-plus" class="w-4 h-4"></i>
+            <span>Tambah Jadwal Manual</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Controls Block -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row gap-4 mb-6 fade-in" style="animation-delay: 0.1s">
+        <!-- Search/Faktur Filter -->
+        <div class="relative flex-1">
+          <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+            <i data-lucide="search" class="w-4 h-4"></i>
+          </span>
+          <input type="text" id="jadwal-search" placeholder="Cari nomor faktur atau supplier..." class="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 text-sm text-slate-800 focus:outline-none focus:border-blue-500" oninput="renderJadwalList()">
+        </div>
+        <!-- Status Filter -->
+        <div class="w-full sm:w-48">
+          <select id="status-filter" class="w-full px-4 py-2 rounded-xl border border-slate-200 text-sm text-slate-700 focus:outline-none focus:border-blue-500" onchange="renderJadwalList()">
+            <option value="all">Semua Status Rencana</option>
+            <option value="belum_dibayar">Belum Dibayar</option>
+            <option value="dibayar">Sudah Dibayar</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Jadwal List Table -->
+      <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden fade-in" style="animation-delay: 0.2s">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-slate-50/70 border-b border-slate-100 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                <th class="p-4">No. Faktur</th>
+                <th class="p-4">Supplier</th>
+                <th class="p-4">Tanggal Rencana Angsuran</th>
+                <th class="p-4 text-right">Jumlah Rencana Angsuran</th>
+                <th class="p-4 text-center">Status Jadwal</th>
+                <th class="p-4 text-right">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="jadwal-list" class="divide-y divide-slate-100 text-sm text-slate-700">
+              <!-- Populated dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Custom Schedule Manual Modal -->
+      <div id="custom-jadwal-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm items-center justify-center z-50 hidden flex">
+        <div class="bg-white rounded-2xl max-w-md w-full m-4 shadow-2xl border border-slate-100 overflow-hidden">
+          <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+            <h3 class="font-bold text-slate-800">Tambah Jadwal Angsuran Manual</h3>
+            <button onclick="closeCustomJadwalModal()" class="text-slate-400 hover:text-slate-600">
+              <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+          </div>
+
+          <form id="custom-jadwal-form" class="p-6 space-y-4" onsubmit="saveCustomJadwalForm(event)">
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Faktur Hutang Aktif</label>
+              <select id="form-hutang-id" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-800 focus:outline-none focus:border-blue-500">
+                <!-- Loaded dynamically -->
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Tanggal Rencana Bayar</label>
+              <input type="date" id="form-tanggal-rencana" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-800 focus:outline-none focus:border-blue-500">
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Jumlah Angsuran Rencana (Rp)</label>
+              <input type="number" id="form-jumlah-rencana" required placeholder="Contoh: 1500000" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-800 font-mono focus:outline-none focus:border-blue-500">
+            </div>
+
+            <div class="flex gap-3 justify-end pt-4">
+              <button type="button" onclick="closeCustomJadwalModal()" class="px-4 py-2 border border-slate-200 rounded-xl text-slate-500 text-sm font-semibold hover:bg-slate-50">Batal</button>
+              <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold shadow-md">Simpan Jadwal</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Data Manager & Scripts -->
+    <script src="assets/js/db.js"></script>
+    <script src="assets/js/script.js"></script>
+    <script>
+      // Populate Hutang Select Options for Modal
+      const activeDebts = window.PayTrackDB.getHutangs().filter(h => h.status_hutang !== 'lunas');
+      const formHutSel = document.getElementById('form-hutang-id');
+      if (formHutSel) {
+        formHutSel.innerHTML = activeDebts.map(h => {
+          const sup = window.PayTrackDB.getSuppliers().find(s => s.id === h.supplier_id) || { nama_supplier: 'Mitra' };
+          return `<option value="${h.id}">${h.nomor_faktur} - ${sup.nama_supplier} (Sisa: Rp ${h.jumlah_hutang.toLocaleString('id-ID')})</option>`;
+        }).join('');
+      }
+
+      function renderJadwalList() {
+        const query = document.getElementById('jadwal-search').value.toLowerCase();
+        const statusFilter = document.getElementById('status-filter').value;
+        const list = document.getElementById('jadwal-list');
+
+        const schedules = window.PayTrackDB.getJadwalPembayaran();
+
+        const filtered = schedules.filter(j => {
+          const matchQuery = j.nomor_faktur.toLowerCase().includes(query) || 
+                             j.nama_supplier.toLowerCase().includes(query);
+          const matchStatus = statusFilter === 'all' || j.status_rencana === statusFilter;
+          return matchQuery && matchStatus;
+        });
+
+        // Sort by date ascending
+        filtered.sort((a, b) => new Date(a.tanggal_rencana) - new Date(b.tanggal_rencana));
+
+        if (filtered.length === 0) {
+          list.innerHTML = `
+            <tr>
+              <td colspan="6" class="p-8 text-center text-slate-400">
+                <i data-lucide="calendar" class="w-10 h-10 mx-auto text-slate-300 mb-2"></i>
+                <p class="font-semibold text-slate-500">Tidak ada jadwal pembayaran ditemukan</p>
+              </td>
+            </tr>
+          `;
+          if (window.lucide) window.lucide.createIcons();
+          return;
+        }
+
+        list.innerHTML = filtered.map(j => {
+          let statusBadge = '';
+          if (j.status_rencana === 'dibayar') {
+            statusBadge = '<span class="px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-full font-bold text-xs uppercase">DIBAYAR</span>';
+          } else {
+            statusBadge = '<span class="px-2.5 py-1 bg-amber-50 text-amber-600 rounded-full font-bold text-xs uppercase">BELUM DIBAYAR</span>';
+          }
+
+          let actionsHtml = '';
+          if (j.status_rencana === 'belum_dibayar') {
+            actionsHtml = `
+              <div class="flex items-center justify-end gap-2">
+                <button onclick="markAsPaid('${j.id}')" class="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-xs rounded-lg transition-colors flex items-center gap-1">
+                  <i data-lucide="check" class="w-3.5 h-3.5"></i> Set Lunas
+                </button>
+              </div>
+            `;
+          } else {
+            actionsHtml = `
+              <div class="flex items-center justify-end gap-2">
+                <button onclick="markAsUnpaid('${j.id}')" class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs rounded-lg transition-colors flex items-center gap-1">
+                  <i data-lucide="undo-2" class="w-3.5 h-3.5"></i> Batalkan
+                </button>
+              </div>
+            `;
+          }
+
+          return `
+            <tr class="hover:bg-slate-50/50 transition-colors">
+              <td class="p-4 font-semibold text-slate-800">${j.nomor_faktur}</td>
+              <td class="p-4 font-medium text-slate-700">${j.nama_supplier}</td>
+              <td class="p-4 font-mono text-xs">${j.tanggal_rencana}</td>
+              <td class="p-4 text-right font-bold text-slate-950 font-mono">Rp ${j.jumlah_rencana.toLocaleString('id-ID')}</td>
+              <td class="p-4 text-center">${statusBadge}</td>
+              <td class="p-4 text-right">${actionsHtml}</td>
+            </tr>
+          `;
+        }).join('');
+
+        if (window.lucide) window.lucide.createIcons();
+      }
+
+      function openCustomJadwalModal() {
+        const modal = document.getElementById('custom-jadwal-modal');
+        document.getElementById('custom-jadwal-form').reset();
+        modal.classList.remove('hidden');
+      }
+
+      function closeCustomJadwalModal() {
+        document.getElementById('custom-jadwal-modal').classList.add('hidden');
+      }
+
+      function saveCustomJadwalForm(e) {
+        e.preventDefault();
+        const hutangId = document.getElementById('form-hutang-id').value;
+        const date = document.getElementById('form-tanggal-rencana').value;
+        const amount = document.getElementById('form-jumlah-rencana').value;
+
+        if (!hutangId) {
+          alert('Silakan pilih faktur kredit terlebih dahulu!');
+          return;
+        }
+
+        window.PayTrackDB.generateJadwalCustom(hutangId, date, amount);
+        closeCustomJadwalModal();
+        renderJadwalList();
+      }
+
+      window.markAsPaid = function(id) {
+        window.PayTrackDB.updateJadwalStatus(id, 'dibayar');
+        renderJadwalList();
+      };
+
+      window.markAsUnpaid = function(id) {
+        window.PayTrackDB.updateJadwalStatus(id, 'belum_dibayar');
+        renderJadwalList();
+      };
+
+      renderJadwalList();
+    </script>
+  </body>
+</html>

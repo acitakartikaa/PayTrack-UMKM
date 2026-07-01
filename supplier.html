@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Supplier - PayTrack UMKM</title>
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+            }
+          }
+        }
+      }
+    </script>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+  </head>
+  <body>
+    <div id="app-layout">
+      <!-- Title Block -->
+      <div class="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4 fade-in">
+        <div>
+          <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Data Supplier</h1>
+          <p class="text-sm text-slate-500 mt-1">Daftar mitra dagang beserta prioritas and batas plafon kredit</p>
+        </div>
+        <div>
+          <button onclick="openFormModal()" class="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white font-semibold text-sm rounded-xl hover:bg-blue-700 shadow-md transition-all">
+            <i data-lucide="plus-circle" class="w-4 h-4"></i>
+            <span>Tambah Supplier</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Controls Block (Search & Filters) -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row gap-4 mb-6 fade-in" style="animation-delay: 0.1s">
+        <!-- Search bar -->
+        <div class="relative flex-1">
+          <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+            <i data-lucide="search" class="w-4 h-4"></i>
+          </span>
+          <input type="text" id="supplier-search" placeholder="Cari nama, kontak, atau alamat..." class="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500" oninput="renderSupplierList()">
+        </div>
+        <!-- Priority Filter -->
+        <div class="w-full sm:w-48">
+          <select id="priority-filter" class="w-full px-4 py-2 rounded-xl border border-slate-200 text-sm text-slate-700 focus:outline-none focus:border-blue-500" onchange="renderSupplierList()">
+            <option value="all">Semua Prioritas</option>
+            <option value="tinggi">Tinggi</option>
+            <option value="sedang">Sedang</option>
+            <option value="rendah">Rendah</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Supplier grid/table view -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 fade-in" style="animation-delay: 0.2s" id="supplier-grid">
+        <!-- Populated dynamically -->
+      </div>
+
+      <!-- Add/Edit Modal -->
+      <div id="supplier-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm items-center justify-center z-50 hidden flex">
+        <div class="bg-white rounded-2xl max-w-md w-full m-4 shadow-2xl border border-slate-100 overflow-hidden">
+          <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+            <h3 id="modal-title" class="font-bold text-slate-800">Form Supplier</h3>
+            <button onclick="closeFormModal()" class="text-slate-400 hover:text-slate-600">
+              <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+          </div>
+          
+          <form id="supplier-form" class="p-6 space-y-4" onsubmit="saveSupplierForm(event)">
+            <input type="hidden" id="supplier-id">
+            
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Nama Supplier</label>
+              <input type="text" id="nama-supplier" required placeholder="Contoh: PT Sumber Pangan" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-800 focus:outline-none focus:border-blue-500">
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Kontak / Person-in-Charge</label>
+              <input type="text" id="kontak-supplier" required placeholder="Contoh: 0812-xxxx-xxxx (Budi)" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-800 focus:outline-none focus:border-blue-500">
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Alamat Kantor / Gudang</label>
+              <textarea id="alamat-supplier" rows="2" placeholder="Contoh: Jl. Industri Sembako Raya No. 4, Jakarta" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-800 focus:outline-none focus:border-blue-500"></textarea>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Batas Kredit (Rp)</label>
+                <input type="number" id="kredit-supplier" required placeholder="10000000" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-800 font-mono focus:outline-none focus:border-blue-500">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Tingkat Prioritas</label>
+                <select id="prioritas-supplier" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-800 focus:outline-none focus:border-blue-500">
+                  <option value="tinggi">Tinggi</option>
+                  <option value="sedang">Sedang</option>
+                  <option value="rendah">Rendah</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="flex gap-3 justify-end pt-4">
+              <button type="button" onclick="closeFormModal()" class="px-4 py-2 border border-slate-200 rounded-xl text-slate-500 text-sm font-semibold hover:bg-slate-50">Batal</button>
+              <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-xl text-sm font-semibold shadow-md">Simpan Data</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Data Manager & Scripts -->
+    <script src="assets/js/db.js"></script>
+    <script src="assets/js/script.js"></script>
+    <script>
+      // Populate & filter
+      function renderSupplierList() {
+        const query = document.getElementById('supplier-search').value.toLowerCase();
+        const priorityFilter = document.getElementById('priority-filter').value;
+        const grid = document.getElementById('supplier-grid');
+        
+        const suppliers = window.PayTrackDB.getSuppliers();
+        
+        const filtered = suppliers.filter(s => {
+          const matchQuery = s.nama_supplier.toLowerCase().includes(query) || 
+                             s.kontak.toLowerCase().includes(query) ||
+                             s.alamat.toLowerCase().includes(query);
+          const matchPriority = priorityFilter === 'all' || s.tingkat_prioritas === priorityFilter;
+          return matchQuery && matchPriority;
+        });
+
+        if (filtered.length === 0) {
+          grid.innerHTML = `
+            <div class="col-span-full bg-white p-12 text-center text-slate-400 rounded-3xl border border-slate-200">
+              <i data-lucide="truck" class="w-12 h-12 mx-auto text-slate-300 mb-3"></i>
+              <p class="font-semibold text-slate-600">Tidak ada supplier ditemukan</p>
+              <p class="text-xs text-slate-400 mt-1">Coba gunakan kata kunci pencarian atau filter prioritas lain.</p>
+            </div>
+          `;
+          if (window.lucide) window.lucide.createIcons();
+          return;
+        }
+
+        grid.innerHTML = filtered.map(s => {
+          let priorityBadge = '';
+          if (s.tingkat_prioritas === 'tinggi') {
+            priorityBadge = '<span class="px-2.5 py-1 bg-red-50 text-red-600 rounded-full font-bold text-xs uppercase">Tinggi</span>';
+          } else if (s.tingkat_prioritas === 'sedang') {
+            priorityBadge = '<span class="px-2.5 py-1 bg-amber-50 text-amber-600 rounded-full font-bold text-xs uppercase">Sedang</span>';
+          } else {
+            priorityBadge = '<span class="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-full font-bold text-xs uppercase">Rendah</span>';
+          }
+
+          return `
+            <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between interactive-card fade-in">
+              <div>
+                <div class="flex items-center justify-between mb-4">
+                  ${priorityBadge}
+                  <span class="text-xs text-slate-400 font-mono">Batas: Rp ${s.batas_kredit.toLocaleString('id-ID')}</span>
+                </div>
+                
+                <h3 class="font-bold text-slate-800 text-lg line-clamp-1">${s.nama_supplier}</h3>
+                
+                <div class="space-y-2 mt-4 text-sm text-slate-600">
+                  <p class="flex items-start gap-2.5">
+                    <i data-lucide="phone" class="w-4 h-4 text-slate-400 mt-0.5 shrink-0"></i>
+                    <span class="line-clamp-1">${s.kontak}</span>
+                  </p>
+                  <p class="flex items-start gap-2.5">
+                    <i data-lucide="map-pin" class="w-4 h-4 text-slate-400 mt-0.5 shrink-0"></i>
+                    <span class="line-clamp-2">${s.alamat}</span>
+                  </p>
+                </div>
+              </div>
+
+              <div class="flex items-center justify-end gap-2 mt-6 pt-4 border-t border-slate-100">
+                <button onclick="editSupplier('${s.id}')" class="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Edit">
+                  <i data-lucide="edit-3" class="w-4.5 h-4.5"></i>
+                </button>
+                <button onclick="deleteSupplier('${s.id}')" class="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Hapus">
+                  <i data-lucide="trash" class="w-4.5 h-4.5"></i>
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        if (window.lucide) window.lucide.createIcons();
+      }
+
+      // Open Form Modal
+      function openFormModal(sup = null) {
+        const modal = document.getElementById('supplier-modal');
+        const title = document.getElementById('modal-title');
+        
+        if (sup) {
+          title.innerText = 'Ubah Data Supplier';
+          document.getElementById('supplier-id').value = sup.id;
+          document.getElementById('nama-supplier').value = sup.nama_supplier;
+          document.getElementById('kontak-supplier').value = sup.kontak;
+          document.getElementById('alamat-supplier').value = sup.alamat;
+          document.getElementById('kredit-supplier').value = sup.batas_kredit;
+          document.getElementById('prioritas-supplier').value = sup.tingkat_prioritas;
+        } else {
+          title.innerText = 'Tambah Supplier Baru';
+          document.getElementById('supplier-id').value = '';
+          document.getElementById('supplier-form').reset();
+        }
+        
+        modal.classList.remove('hidden');
+      }
+
+      function closeFormModal() {
+        document.getElementById('supplier-modal').classList.add('hidden');
+      }
+
+      // Save Form
+      function saveSupplierForm(e) {
+        e.preventDefault();
+        const id = document.getElementById('supplier-id').value;
+        const data = {
+          nama_supplier: document.getElementById('nama-supplier').value,
+          kontak: document.getElementById('kontak-supplier').value,
+          alamat: document.getElementById('alamat-supplier').value,
+          batas_kredit: parseFloat(document.getElementById('kredit-supplier').value),
+          tingkat_prioritas: document.getElementById('prioritas-supplier').value
+        };
+
+        if (id) {
+          window.PayTrackDB.updateSupplier(id, data);
+        } else {
+          window.PayTrackDB.addSupplier(data);
+        }
+
+        document.getElementById('supplier-modal').classList.add('hidden');
+        renderSupplierList();
+      }
+
+      // Edit supplier shortcut
+      window.editSupplier = function(id) {
+        const sup = window.PayTrackDB.getSuppliers().find(s => s.id === id);
+        if (sup) openFormModal(sup);
+      };
+
+      // Delete supplier
+      window.deleteSupplier = function(id) {
+        if (confirm('Apakah Anda yakin ingin menghapus supplier ini?')) {
+          const res = window.PayTrackDB.deleteSupplier(id);
+          if (res.success) {
+            renderSupplierList();
+          } else {
+            alert(res.message);
+          }
+        }
+      };
+
+      // Initialize list
+      renderSupplierList();
+    </script>
+  </body>
+</html>
