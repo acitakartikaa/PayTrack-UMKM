@@ -4,10 +4,10 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "cp index.html.bak index.html 2>/dev/null || cp index.html index.html.bak || true; vite --port=3000 --host=0.0.0.0",
-    "build": "cp index.html index.html.bak && vite build && (cp dist/index.html index.html 2>/dev/null || cp dist/src/index.html index.html)",
+    "dev": "vite --port=3000 --host=0.0.0.0",
+    "build": "vite build",
     "preview": "vite preview",
-    "clean": "rm -rf dist server.js index.html.bak",
+    "clean": "rm -rf dist",
     "lint": "tsc --noEmit"
   },
   "dependencies": {
@@ -20,6 +20,7 @@
     "motion": "^12.23.24",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
+    "react-router-dom": "^7.18.1",
     "vite": "^6.2.3"
   },
   "devDependencies": {

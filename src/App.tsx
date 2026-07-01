@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation, Routes, Route, Navigate } from 'react-router-dom';
 import { 
   getDb, 
   forceRecalculatePriorities, 
@@ -40,9 +41,14 @@ import {
 } from 'lucide-react';
 
 export default function App() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
   const [db, setDb] = useState<RelationalDatabase | null>(null);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [activeTab, setActiveTab] = useState<string>('dashboard');
+  
+  // Extract activeTab from location path, e.g. "/supplier" -> "supplier"
+  const activeTab = location.pathname.substring(1) || 'dashboard';
   
   // Interactive navigation / sidebar toggle for mobile
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -64,16 +70,41 @@ export default function App() {
     // Auto-login Budi Santoso (Owner) by default to give a highly populated instant preview experience,
     // but allow logging out and switching roles easily!
     const session = localStorage.getItem('paytrack_user_session');
+    let userToSet = null;
     if (session) {
       try {
-        setCurrentUser(JSON.parse(session));
+        userToSet = JSON.parse(session);
       } catch {
-        setCurrentUser(loadedDb.users[0]);
+        userToSet = loadedDb.users[0];
       }
     } else {
-      setCurrentUser(loadedDb.users[0]); // Default to first user (Budi Santoso)
+      userToSet = loadedDb.users[0]; // Default to first user (Budi Santoso)
+    }
+    setCurrentUser(userToSet);
+
+    if (userToSet) {
+      if (location.pathname === '/' || location.pathname === '/login') {
+        navigate('/dashboard', { replace: true });
+      }
+    } else {
+      navigate('/login', { replace: true });
     }
   }, []);
+
+  // Sync route safety
+  useEffect(() => {
+    if (db) {
+      if (!currentUser) {
+        if (location.pathname !== '/login') {
+          navigate('/login', { replace: true });
+        }
+      } else {
+        if (location.pathname === '/login' || location.pathname === '/') {
+          navigate('/dashboard', { replace: true });
+        }
+      }
+    }
+  }, [currentUser, location.pathname, db, navigate]);
 
   const refreshState = () => {
     const loadedDb = getDb();
@@ -101,7 +132,7 @@ export default function App() {
       setCurrentUser(matchedUser);
       localStorage.setItem('paytrack_user_session', JSON.stringify(matchedUser));
       setAuthError(null);
-      setActiveTab('dashboard');
+      navigate('/dashboard');
     } else {
       setAuthError('Username tidak terdaftar! Gunakan "budi" atau "admin".');
     }
@@ -114,7 +145,7 @@ export default function App() {
       setCurrentUser(matchedUser);
       localStorage.setItem('paytrack_user_session', JSON.stringify(matchedUser));
       setAuthError(null);
-      setActiveTab('dashboard');
+      navigate('/dashboard');
     }
   };
 
@@ -123,6 +154,7 @@ export default function App() {
     localStorage.removeItem('paytrack_user_session');
     setLoginUsername('');
     setLoginPassword('');
+    navigate('/login');
   };
 
   const handleAddCashFlow = (amount: number, category: string, remarks: string) => {
@@ -134,7 +166,7 @@ export default function App() {
   const handleSelectDebtToPay = (debtId: string, amount?: number) => {
     setPreselectedDebtId(debtId);
     setPreselectedAmount(amount);
-    setActiveTab('realisasi');
+    navigate('/realisasi');
   };
 
   // Clear routing selection once Payments modal closes
@@ -286,7 +318,7 @@ export default function App() {
         onLogout={handleLogout}
         onOpenNotifications={() => {
           if (currentUser.role === 'owner') {
-            setActiveTab('notifikasi');
+            navigate('/notifikasi');
           }
         }}
       />
@@ -302,7 +334,7 @@ export default function App() {
             {mobileSidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
           <span className="text-xs font-bold text-slate-800 capitalize">
-            Menu: {activeTabsList.find(t => t.id === activeTab)?.label}
+            Menu: {activeTabsList.find(t => t.id === activeTab)?.label || 'Dashboard'}
           </span>
           <div className="w-5"></div>
         </div>
@@ -321,7 +353,7 @@ export default function App() {
                 <button
                   key={tab.id}
                   onClick={() => {
-                    setActiveTab(tab.id);
+                    navigate(`/${tab.id}`);
                     setMobileSidebarOpen(false);
                   }}
                   className={`w-full flex items-center justify-between rounded-xl px-3 py-3 text-xs font-semibold tracking-tight transition-all cursor-pointer ${
@@ -352,94 +384,125 @@ export default function App() {
           <div className="px-7 pt-4 border-t border-slate-100 text-left text-[10px] text-slate-400 font-mono space-y-1">
             <p>© 2026 PayTrack UMKM</p>
             <p>Database: Relational Sync</p>
-            <p>Port: Container Ingress</p>
+            <p>Navigation: React Router SPA</p>
           </div>
         </aside>
 
         {/* Screen Content Wrapper */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full overflow-hidden">
-          {activeTab === 'dashboard' && (
-            <Dashboard
-              umkm={currentUmkm}
-              hutangs={db.hutang_kredit}
-              suppliers={db.supplier}
-              logs={db.laporan_keuangan}
-              onAddCash={handleAddCashFlow}
-              onNavigate={(tab) => setActiveTab(tab)}
-              onSelectDebtToPay={handleSelectDebtToPay}
-            />
-          )}
+          <Routes>
+            <Route path="/dashboard" element={
+              <Dashboard
+                umkm={currentUmkm}
+                hutangs={db.hutang_kredit}
+                suppliers={db.supplier}
+                logs={db.laporan_keuangan}
+                onAddCash={handleAddCashFlow}
+                onNavigate={(tab) => {
+                  if (tab === 'simulasi') navigate('/prioritas');
+                  else navigate(`/${tab}`);
+                }}
+                onSelectDebtToPay={handleSelectDebtToPay}
+              />
+            } />
 
-          {activeTab === 'supplier' && (
-            <Suppliers
-              suppliers={db.supplier}
-              userRole={currentUser.role}
-              onRefresh={refreshState}
-            />
-          )}
+            <Route path="/supplier" element={
+              <Suppliers
+                suppliers={db.supplier}
+                userRole={currentUser.role}
+                onRefresh={refreshState}
+              />
+            } />
 
-          {activeTab === 'hutang' && currentUser.role === 'owner' && (
-            <Debts
-              hutangs={db.hutang_kredit}
-              suppliers={db.supplier}
-              onRefresh={refreshState}
-              onOpenRecordPayment={handleSelectDebtToPay}
-            />
-          )}
+            <Route path="/hutang" element={
+              currentUser.role === 'owner' ? (
+                <Debts
+                  hutangs={db.hutang_kredit}
+                  suppliers={db.supplier}
+                  onRefresh={refreshState}
+                  onOpenRecordPayment={handleSelectDebtToPay}
+                />
+              ) : (
+                <Navigate to="/dashboard" replace />
+              )
+            } />
 
-          {activeTab === 'jadwal' && currentUser.role === 'owner' && (
-            <Schedules
-              schedules={db.jadwal_pembayaran}
-              hutangs={db.hutang_kredit}
-              suppliers={db.supplier}
-              onOpenRecordPayment={handleSelectDebtToPay}
-            />
-          )}
+            <Route path="/jadwal" element={
+              currentUser.role === 'owner' ? (
+                <Schedules
+                  schedules={db.jadwal_pembayaran}
+                  hutangs={db.hutang_kredit}
+                  suppliers={db.supplier}
+                  onOpenRecordPayment={handleSelectDebtToPay}
+                />
+              ) : (
+                <Navigate to="/dashboard" replace />
+              )
+            } />
 
-          {activeTab === 'prioritas' && currentUser.role === 'owner' && (
-            <Priorities
-              umkm={currentUmkm}
-              hutangs={db.hutang_kredit}
-              suppliers={db.supplier}
-              onRefresh={refreshState}
-            />
-          )}
+            <Route path="/prioritas" element={
+              currentUser.role === 'owner' ? (
+                <Priorities
+                  umkm={currentUmkm}
+                  hutangs={db.hutang_kredit}
+                  suppliers={db.supplier}
+                  onRefresh={refreshState}
+                />
+              ) : (
+                <Navigate to="/dashboard" replace />
+              )
+            } />
 
-          {activeTab === 'realisasi' && currentUser.role === 'owner' && (
-            <Payments
-              payments={db.transaksi_pembayaran}
-              hutangs={db.hutang_kredit}
-              suppliers={db.supplier}
-              preselectedDebtId={preselectedDebtId}
-              preselectedAmount={preselectedAmount}
-              onRefresh={refreshState}
-              onClosePreselected={handleClearPreselected}
-            />
-          )}
+            <Route path="/realisasi" element={
+              currentUser.role === 'owner' ? (
+                <Payments
+                  payments={db.transaksi_pembayaran}
+                  hutangs={db.hutang_kredit}
+                  suppliers={db.supplier}
+                  preselectedDebtId={preselectedDebtId}
+                  preselectedAmount={preselectedAmount}
+                  onRefresh={refreshState}
+                  onClosePreselected={handleClearPreselected}
+                />
+              ) : (
+                <Navigate to="/dashboard" replace />
+              )
+            } />
 
-          {activeTab === 'notifikasi' && currentUser.role === 'owner' && (
-            <Notifications
-              notifications={db.notifikasi}
-              hutangs={db.hutang_kredit}
-              onRefresh={refreshState}
-            />
-          )}
+            <Route path="/notifikasi" element={
+              currentUser.role === 'owner' ? (
+                <Notifications
+                  notifications={db.notifikasi}
+                  hutangs={db.hutang_kredit}
+                  onRefresh={refreshState}
+                />
+              ) : (
+                <Navigate to="/dashboard" replace />
+              )
+            } />
 
-          {activeTab === 'laporan' && (
-            <Reports
-              suppliers={db.supplier}
-              hutangs={db.hutang_kredit}
-              onRefresh={refreshState}
-            />
-          )}
+            <Route path="/laporan" element={
+              <Reports
+                suppliers={db.supplier}
+                hutangs={db.hutang_kredit}
+                onRefresh={refreshState}
+              />
+            } />
 
-          {activeTab === 'users' && currentUser.role === 'admin' && (
-            <AdminUsers
-              users={db.users}
-              umkmList={db.umkm}
-              onRefresh={refreshState}
-            />
-          )}
+            <Route path="/users" element={
+              currentUser.role === 'admin' ? (
+                <AdminUsers
+                  users={db.users}
+                  umkmList={db.umkm}
+                  onRefresh={refreshState}
+                />
+              ) : (
+                <Navigate to="/dashboard" replace />
+              )
+            } />
+
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          </Routes>
         </main>
 
       </div>
